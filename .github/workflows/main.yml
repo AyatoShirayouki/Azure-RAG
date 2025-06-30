@@ -19,17 +19,17 @@ jobs:
         uses: docker/setup-buildx-action@v1
 
       - name: Log in to GitHub Container Registry
-        uses: docker/login-action@v1.10.0
+        uses: docker/login-action@v2
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.CR_PAT }}
 
       - name: Lowercase the repo name and username
-        run: echo "REPO=${GITHUB_REPOSITORY,,}" >> ${GITHUB_ENV}
+        run: echo "REPO=${GITHUB_REPOSITORY,,}" >> $GITHUB_ENV
 
       - name: Build and push container image to registry
-        uses: docker/build-push-action@v2
+        uses: docker/build-push-action@v5
         with:
           push: true
           tags: ghcr.io/${{ env.REPO }}:${{ github.sha }}
@@ -46,7 +46,7 @@ jobs:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
 
       - name: Lowercase the repo name and username
-        run: echo "REPO=${GITHUB_REPOSITORY,,}" >> ${GITHUB_ENV}
+        run: echo "REPO=${GITHUB_REPOSITORY,,}" >> $GITHUB_ENV
 
       - name: Deploy to Container App
         uses: azure/CLI@v1
@@ -54,13 +54,19 @@ jobs:
           inlineScript: |
             az config set extension.use_dynamic_install=yes_without_prompt
 
-            echo "Configuring container registry credentials..."
+            echo "Login to GHCR inside script (safety check)..."
             az containerapp registry set \
               --name ${{ env.AZURE_CONTAINER_APP_NAME }} \
               --resource-group ${{ env.AZURE_GROUP_NAME }} \
               --server ghcr.io \
               --username ${{ github.actor }} \
               --password ${{ secrets.CR_PAT }}
+
+            echo "Updating container image..."
+            az containerapp update \
+              --name ${{ env.AZURE_CONTAINER_APP_NAME }} \
+              --resource-group ${{ env.AZURE_GROUP_NAME }} \
+              --image ghcr.io/${{ env.REPO }}:${{ github.sha }}
 
             echo "Updating environment variables..."
             az containerapp update \
@@ -75,15 +81,9 @@ jobs:
                 SEARCH_API_KEY=${{ secrets.SEARCH_SERVICE_API_KEY }} \
                 SEARCH_INDEX_NAME="wines-index"
 
-            echo "Updating compute resources..."
+            echo "Ensuring compute resources are up to date..."
             az containerapp update \
               --name ${{ env.AZURE_CONTAINER_APP_NAME }} \
               --resource-group ${{ env.AZURE_GROUP_NAME }} \
               --cpu 2 \
               --memory 4Gi
-
-            echo "Updating container image..."
-            az containerapp update \
-              --name ${{ env.AZURE_CONTAINER_APP_NAME }} \
-              --resource-group ${{ env.AZURE_GROUP_NAME }} \
-              --image ghcr.io/${{ env.REPO }}:${{ github.sha }}
