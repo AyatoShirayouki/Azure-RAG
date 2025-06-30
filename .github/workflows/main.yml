@@ -71,9 +71,9 @@ jobs:
                 OPENAI_API_BASE=https://demo-alfredo-openai.openai.azure.com/ \
                 OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }} \
                 OPENAI_API_VERSION="2023-07-01-preview" \
-                SEARCH_SERVICE_NAME="https://demo-alfredo.search.windows.net" \
+                SEARCH_SERVICE_NAME="https://demo-container-search.search.windows.net" \
                 SEARCH_API_KEY=${{ secrets.SEARCH_SERVICE_API_KEY }} \
-                SEARCH_INDEX_NAME="demo-alfredo"
+                SEARCH_INDEX_NAME="wines-index"
 
             echo "Updating compute resources..."
             az containerapp update \
